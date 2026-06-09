@@ -1,0 +1,39 @@
+groups:
+  - name: node_alerts
+    interval: 30s
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instancia {{ $labels.instance }} caída"
+          description: "{{ $labels.instance }} del job {{ $labels.job }} lleva más de 1 minuto sin responder."
+
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU alta en {{ $labels.instance }}"
+          description: "El CPU en {{ $labels.instance }} está al {{ $value | humanize }}% durante más de 2 minutos."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memoria alta en {{ $labels.instance }}"
+          description: "El uso de memoria en {{ $labels.instance }} es del {{ $value | humanize }}%."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disco bajo en {{ $labels.instance }}"
+          description: "Queda menos del 10% de espacio libre en {{ $labels.mountpoint }} ({{ $value | humanize }}% disponible)."
